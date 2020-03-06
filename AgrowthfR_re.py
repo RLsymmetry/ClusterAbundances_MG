@@ -995,23 +995,6 @@ class DGP(Cosmosground):
         """
         assert type(value) in (int, float, np.int64, np.float64), 'value must be a number'
         self._rc = value
-    
-    '''
-    #No longer in use cuz we don't need sDGP after all.
-    def get_branch(self):
-        """
-        Returns: the number indicating the branch of the DGP model. 1 for nDGP, -1 for sDGP.
-        """
-        return self._branch
-    
-    def set_branch(self, value):
-        """
-        Sets branch to value.
-        value: int 0 or 1.
-        """
-        assert value == 1 or -1, 'value must be 1 or -1'
-        self._branch = value
-    '''
         
     #A general parameter setting function that can be used by modules like Fisher_MG_final, etc.
     def setpars(self, pars):
@@ -1032,30 +1015,6 @@ class DGP(Cosmosground):
         #DGP parameters
         #self._branch = 1
         self._rc = 3
-       
-    
-    #Customized Hubble parameter stuff, will override that from Cosmosground
-    '''   
-    def _adot(self, a):
-        """
-        The modified time derivative of the growth factor specifically for the DGP model. 
-        We're normalizing H0 to 1. According to the linear perturbation theory, pp. 27 Eqn. A6,
-        H(z) (Changed it to H(a)) = H0 * (sqrt(O_m/a^3 + 1/(4r_c^2H0^2)) + ε * sqrt(1/(4r_c^2H0^2))), 
-        ε = -1 for nDGP, ε = 1 for sDGP.
-        """
-        return a * (np.sqrt(self._Om/(a ** 3) + 1/(4 * self._rc ** 2)) - 1/(2 * self._rc))   
-    
-    def _derivadot(self, a):
-        """
-        The derivative of adot with respect to a, costomized to the DGP model. 
-        This is a term that appears in the solution process of the 2nd-order differential equation of the growth function
-        shown below. Since mathematica can do abstract derivative but python cannot, but luckily this derivative can be done 
-        analytically, so I here just put in the analytical expression by hand.
-        """
-        numerator = - (self._Om)/(a ** 2) + a/(2 * self._rc ** 2)
-        denominator = 2 * np.sqrt((self._Om)/a + a ** 2/(4 * self._rc ** 2))
-        return numerator/denominator - 1/(2 * self._rc)
-    ''' 
     
     #Defining mass terms and effective g factor in DGP
     def _geffDGP(self, a0):
