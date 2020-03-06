@@ -943,14 +943,14 @@ class HuSawicki(Cosmosground):
             sf11 = self.sigma8_ratio(self, z, k)
             self.set_fr0exp(fr0_exp - 0.02)
             sf12 = self.sigma8_ratio(self, z, k)
-            sfder1 = (sf12-sf11)/0.04
+            sfder1 = (sf12-sf11)/(-0.04)
 
             #Numerical derivative with half stepsize 0.01 on the exponential
             self.set_fr0exp(fr0_exp + 0.01)
             sf21 = self.sigma8_ratio(self, z, k)
             self.set_fr0exp(fr0_exp - 0.01)
             sf22 = self.sigma8_ratio(self, z, k)
-            sfder2 = (sf22-sf21)/0.02
+            sfder2 = (sf22-sf21)/(-0.02)
             
         if np.allclose(sfder1, sfder2, rtol = 1e-03, atol = 0):
             print('Partial derivative over f_R converges nicely, proceeding to partial derivative over n')
