@@ -159,18 +159,6 @@ def coeellipse(Cov, pars, labelpars, blockvalues, linewidth = 1.6):
         plt.axhline(y = pars[1] - np.sqrt(Cov[1][1]) * alphas[i], ls = '--', color = colorbar[i + 3], linewidth = linewidth, label = str(i + 1) + r'$\sigma$ $y - \alpha \sigma_y$')
 
 
-
-        '''plt.axhline(y = pars[1], linewidth = linewidth)
-        plt.axvline(x = pars[0] - blockvalues[0] * alphas[i], ls = '--', color = colorset[i][i], linewidth = linewidth, label = str(i + 1) + r'$\sigma$ $x$ - blocked variance of ' + labelpars[0])
-        plt.axvline(x = pars[0] + blockvalues[0] * alphas[i], ls = '--', color = colorset[i][i], linewidth = linewidth, label = str(i + 1) + r'$\sigma$ $x$ + blocked variance')
-    
-    
-        plt.axvline(x = pars[0], linewidth = linewidth)
-        plt.axhline(y = pars[1] - blockvalues[1] * alphas[i], ls = '--', color = colorset[i][i], linewidth = linewidth, label = str(i + 1) + r'$\sigma$ $y$ - blocked variance of ' + labelpars[1])
-        plt.axhline(y = pars[1] + blockvalues[1] * alphas[i], ls = '--', color = colorset[i][i], linewidth = linewidth, label = str(i + 1) + r'$\sigma$ $y$ + blocked variance')'''
-
-
-
     ax.set_xlabel(labelpars[0])
     ax.set_ylabel(labelpars[1])
     ax.legend(loc='upper left')
@@ -212,20 +200,6 @@ def choleskyellipse(Cov, pars, labelpars, blockvalues, linewidth = 1.6):
         plt.axvline(x = pars[0] - np.sqrt(Cov[0][0]) * alphas[i], ls = '--', color = colorbar[i + 2], linewidth = linewidth, label = str(i + 1) + r'$\sigma$ $x - \alpha \sigma_x$')
         plt.axhline(y = pars[1] + np.sqrt(Cov[1][1]) * alphas[i], ls = '--', color = colorbar[i + 3], linewidth = linewidth, label = str(i + 1) + r'$\sigma$ $y + \alpha \sigma_y$ (' + labelpars[1] + ')')
         plt.axhline(y = pars[1] - np.sqrt(Cov[1][1]) * alphas[i], ls = '--', color = colorbar[i + 3], linewidth = linewidth, label = str(i + 1) + r'$\sigma$ $y - \alpha \sigma_y$')
-
-
-
-        '''plt.axhline(y = pars[1], linewidth = linewidth)
-        plt.axvline(x = pars[0] - blockvalues[0] * alphas[i], ls = '--', color = colorset[i][i], linewidth = linewidth, label = str(i + 1) + r'$\sigma$ $x$ - blocked variance of ' + labelpars[0])
-        plt.axvline(x = pars[0] + blockvalues[0] * alphas[i], ls = '--', color = colorset[i][i], linewidth = linewidth, label = str(i + 1) + r'$\sigma$ $x$ + blocked variance')
-    
-    
-        plt.axvline(x = pars[0], linewidth = linewidth)
-        plt.axhline(y = pars[1] - blockvalues[1] * alphas[i], ls = '--', color = colorset[i][i], linewidth = linewidth, label = str(i + 1) + r'$\sigma$ $y$ - blocked variance of ' + labelpars[1])
-        plt.axhline(y = pars[1] + blockvalues[1] * alphas[i], ls = '--', color = colorset[i][i], linewidth = linewidth, label = str(i + 1) + r'$\sigma$ $y$ + blocked variance')'''
-
-
-
 
     plt.xlabel(labelpars[0])
     plt.ylabel(labelpars[1])
