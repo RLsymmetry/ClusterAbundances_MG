@@ -782,52 +782,7 @@ class HuSawicki(Cosmosground):
         return k ** 2/(3 * (k ** 2 + (a * self._m(a)) ** 2)) 
     
     #Defines and solves the differential equation
-    '''#Here we use the new solve_ivp in scipy.integrate.
-    def _growthfR(self, a, vecfr, k):
-        """
-        Returns: the 2nd order ode of the growth factor in the fR model in terms of a 1st order vector ode.
-        The original mathematica code:
-        Eqn[k_, a_] = D[p[a], a, a] + (adot*Ddot + 2 (adot^2)/a) D[p[a], a]/(adot^2) == 
-        (1.5*Om /(a^3))  p[a] (1 + geff[k, a])/(adot^2).
-        vecfr: the vector consisting of D and the 1st derivative of D over a.
-        """
-        #np.array([Dmg, Deltamg]) = vecfr
-        dDeltamg_da_1 = - np.divide((self._derivadot(a) + 2 * self.H(a)) * vecfr[1], self._adot(a))
-        dDeltamg_da_2 = np.divide(1.5 * self._Om * (1 + self._gefffR(a, k)) * vecfr[0],  (self._adot(a) ** 2) * (a ** 3))
-        dvecfr_da = np.array([vecfr[1], dDeltamg_da_1 + dDeltamg_da_2])
-        return dvecfr_da
 
-
-    def solvegrowth(self, z, k):
-        """
-        Returns: the solution to the growthfR given k and z.
-        k & z: numpy arrays.
-        """
-        #Assertions
-        if type(z) in (int, float, np.int64, np.float64):
-            assert z >= 0, 'Redshift must be greater than zero'
-        elif type(z) == np.ndarray:
-            assert np.all(z[:-1] <= z[1:]) and z[0] >= 0, 'Redshift must be sorted in an ascending order to solve the ODE'
-        else:
-            raise TypeError('Redshift must be a number')
-            
-        #Gives the initial conditions
-        vec0 = np.array([self._D1(), self._D1deriv()])
-        
-        #Gives the scale factor array and adds the initial condition, rearranging in an ascending order
-        a = np.append(np.divide(1, 1 + z), np.array([self._amin]))
-        a = np.flip(a, 0)
-
-        #Solves the differential equation
-        sol = np.zeros((len(k) , len(a) - 1))
-        #print(sol)
-        for i in range(len(k)):
-            solorig = integrate.solve_ivp(lambda a, vecfr: self._growthfR(a, vecfr, k[i]), [a[0], a[-1]], vec0, method = 'RK45', t_eval = a, rtol = 10 ** (-13), atol = 0).y[0]
-            sol[i] = np.flip(np.delete(solorig, 0), 0)
-            #print(sol[i])
-        return sol
-    
-    '''
     #Below we use the odeint in scipy.
     #Primary conclusion is that solve_ivp is much slower than odeint for a problem like what I have right now. Maybe it's because my problem is still a small problem......instead of a relatively large ode problem. According to this post https://github.com/scipy/scipy/issues/8257, direct RK45 is also gonna be slower......I'll keep odeint for now.
     def _growthfR(self, vecfr, a, k):
@@ -874,42 +829,7 @@ class HuSawicki(Cosmosground):
             sol[i] = np.flip(np.delete(solorig, 0), 0)
         return sol
     
-    '''
-    def solvegrowth_single(self, z, k):
-        """
-        Returns: the solution to the _growthfR given k and z.
-        z can be numpy arrays. Due to the constraints in odeint, I try to use numpy.vectorize.
-        """
-        #Assertions
-        if type(z) in (int, float, np.int64, np.float64):
-            assert z >= 0, 'Redshift must be greater than zero'
-        elif type(z) == np.ndarray:
-            assert np.all(z[:-1] <= z[1:]) and z[0] >= 0, 'Redshift must be sorted in an ascending order to solve the ODE'
-        else:
-            raise TypeError('Redshift must be a number')
-            
-        #Gives the initial conditions
-        vec0 = [self._D1(), self._D1deriv()]
-        
-        #Gives the scale factor array and adds the initial condition, rearranging in an ascending order
-        a = np.append(1/(1 + z), np.array([self._amin]))
-        a = np.flip(a, 0)
-
-        #Solves the differential equation
-        #This section is trying to use vectorize.
-        
-        #sol = np.zeros((len(k) , len(a) - 1))
-        sol = integrate.odeint(self._growthfR, vec0, a, args = (k, ), rtol = 10 ** (-13), atol = 0).T[0]
-        sol = np.flip(np.delete(sol, 0), 0)
-        return sol
     
-    #def solvegrowth_vec(self, z, k):
-    #    """
-    #    Simply vectorizing solvegrowth_single so that I can input k arrays.
-    #    """
-    #    vec = np.vectorize(self.solvegrowth_single, excluded=['z'])
-    #    return vec(z, k)
-    '''
     #Convergence tests and productions of numerical derivatives  
     
     #f_R0 numerical derivatives
@@ -924,7 +844,8 @@ class HuSawicki(Cosmosground):
         if fr0_exp == 'NegInfty':
             #Numerical derivative with half stepsize 10^(-9) 
             #(This stepsize is so that it should be distinguishable with 10^(-7) which is a value of f_R0.
-            #Don't even know whether this is right since in principle
+            #Don't even know whether this is right since this is still varying f_R0 itself, while I can't do varying
+            #in the exponent when f_R0 = 0.
             self.set_fr0(0)
             sf11 = self.sigma8_ratio(self, z, k)
             self.set_fr0(1e-9)
