@@ -16,9 +16,9 @@ from scipy import special
 import matplotlib.pyplot as plt
 import camb
 
-from matplotlib import rc
-plt.rcParams['font.family'] = 'DejaVu Sans'
-rc('text', usetex=True)
+#from matplotlib import rc
+#plt.rcParams['font.family'] = 'DejaVu Sans'
+#rc('text', usetex=True)
 
 #Change to the desired directory, if needed to export .txt files
 #import os
@@ -301,7 +301,8 @@ class Cosmosground(object):
         parms.NonLinear = camb.model.NonLinear_none
         results = camb.get_results(parms)
         kh, z, P = results.get_matter_power_spectrum(minkh=1e-4, maxkh=10, npoints = npoints)
-        return kh, z, P
+        s8_camb = results.get_sigma8()
+        return kh, z, P, s8_camb
 
 
     #Actually calculates sigma8 with redshift bins, using Simpson's rule. 
@@ -323,11 +324,31 @@ class Cosmosground(object):
         if pkarray != None:
             kh, z, P = pkarray
         else:
-            kh, z, P = self._p(z, w0, wa, npoints = npoints) #Default value of power spectrum is obtained from CAMB
+            kh, z, P = self._p(z, w0, wa, npoints = npoints)[:-1] #Default value of power spectrum is obtained from CAMB
         itgd = P * (3 * special.spherical_jn(1, kh * 8)/(kh * 8)) ** 2 * (kh ** 2)
         integ = integrate.simps(itgd, x = kh)
         integ = np.sqrt(integ/(2 * (np.pi) ** 2))
         return z, integ    
+    
+    #Calls sigma_8 calculations built in CAMB (currently only available in ΛCDM model) with a given z to see whether I 
+    #calculated sigma_8 right.
+    def sigma8_check(self, z):
+        """
+        Calls _sigma8_dyn and then the CAMB built-in sigma8, and make comparisons. Have to make sure that the fundamental 
+        cosmological parameters and P(k), etc. are the same thing.
+        z: the redshift array that we look at.      
+        """
+        sigma8_own = self._sigma8_dyn(z)[1]
+        sigma8_camb = np.flip(self._p(z)[3])
+        check_ratio = sigma8_own/sigma8_camb
+        print('The calculated sigma_8 is:')
+        print(sigma8_own)
+        print('The sigma_8 from CAMB is:')
+        print(sigma8_camb)
+        print('The ratio of the former agains the latter is:')
+        print(check_ratio)
+        
+        
 
    
     #The function to produce the array of kh, z, P, for k-dependent growth factor only
@@ -772,7 +793,7 @@ class HuSawicki(Cosmosground):
             #Numerical derivative with half stepsize 10^(-9) 
             #(This stepsize is so that it should be distinguishable with 10^(-7) which is a value of f_R0.
             #Don't even know whether this is right since this is still varying f_R0 itself, while I can't do varying
-            #in the exponent when f_R0 = 0.
+            #in the exponent when f_R0 = 0. But currently we don't really use this part, so might deal with it later.
             self.set_fr0(0)
             sf11 = self.sigma8_ratio(self, z, k)
             self.set_fr0(1e-9)
@@ -786,27 +807,68 @@ class HuSawicki(Cosmosground):
             sf22 = self.sigma8_ratio(self, z, k)
             sfder2 = (sf22-sf21)/1e-10
         else:
+            #Numerical derivative with half stepsize 2 on the exponential
+            self.set_fr0exp(fr0_exp + 1)
+            #fr11 = self.get_fr0()
+            sf41 = self.sigma8_ratio(self, z, k)
+            self.set_fr0exp(fr0_exp - 1)
+            #fr12 = self.get_fr0()
+            sf42 = self.sigma8_ratio(self, z, k)
+            #Test if it's the set_fr0exp that was the problem
+            #sfder1 = (sf12-sf11)/(fr12-fr11)
+            sfder4 = (sf42-sf41)/(-2)
+            
+            #Numerical derivative with half stepsize 1 on the exponential
+            self.set_fr0exp(fr0_exp + 0.5)
+            #fr11 = self.get_fr0()
+            sf31 = self.sigma8_ratio(self, z, k)
+            self.set_fr0exp(fr0_exp - 0.5)
+            #fr12 = self.get_fr0()
+            sf32 = self.sigma8_ratio(self, z, k)
+            #Test if it's the set_fr0exp that was the problem
+            #sfder1 = (sf12-sf11)/(fr12-fr11)
+            sfder3 = (sf32-sf31)/(-1)
+        
+            #Numerical derivative with half stepsize 0.1 on the exponential
+            self.set_fr0exp(fr0_exp + 0.1)
+            #fr11 = self.get_fr0()
+            sf01 = self.sigma8_ratio(self, z, k)
+            self.set_fr0exp(fr0_exp - 0.1)
+            #fr12 = self.get_fr0()
+            sf02 = self.sigma8_ratio(self, z, k)
+            #Test if it's the set_fr0exp that was the problem
+            #sfder1 = (sf12-sf11)/(fr12-fr11)
+            sfder0 = (sf02-sf01)/(-0.2)
+            
             #Numerical derivative with half stepsize 0.02 on the exponential
             self.set_fr0exp(fr0_exp + 0.02)
+            #fr11 = self.get_fr0()
             sf11 = self.sigma8_ratio(self, z, k)
             self.set_fr0exp(fr0_exp - 0.02)
+            #fr12 = self.get_fr0()
             sf12 = self.sigma8_ratio(self, z, k)
+            #Test if it's the set_fr0exp that was the problem
+            #sfder1 = (sf12-sf11)/(fr12-fr11)
             sfder1 = (sf12-sf11)/(-0.04)
 
             #Numerical derivative with half stepsize 0.01 on the exponential
             self.set_fr0exp(fr0_exp + 0.01)
+            #fr21 = self.get_fr0()
             sf21 = self.sigma8_ratio(self, z, k)
             self.set_fr0exp(fr0_exp - 0.01)
+            #fr22 = self.get_fr0()
             sf22 = self.sigma8_ratio(self, z, k)
             sfder2 = (sf22-sf21)/(-0.02)
             
+        return np.array([sfder4, sfder3, sfder0, sfder1, sfder2])
+        '''    
         if np.allclose(sfder1, sfder2, rtol = 1e-03, atol = 0):
             print('Partial derivative over f_R converges nicely, proceeding to partial derivative over n')
             return np.array([sfder1, sfder2])
         else:
             print((sfder1 - sfder2)/sfder2)
             raise RuntimeError('Partial derivative convergence over f_R failed, please check your model')
-        
+        '''
         
     #n numerical derivatives
     def _ntestderiv(self, fr0_exp, n, z, k, save):
@@ -815,6 +877,20 @@ class HuSawicki(Cosmosground):
         """
         self.set_fr0exp(fr0_exp)
         print('Testing partial derivative over n')
+        
+        #Numerical derivative with half stepsize 50%
+        self.set_n(n * 0.5)
+        sn01 = self.sigma8_ratio(self, z, k)
+        self.set_n(n * 1.5)
+        sn02 = self.sigma8_ratio(self, z, k)
+        snder0 = (sn02-sn01)/(n)
+        
+        #Numerical derivative with half stepsize 25%
+        self.set_n(n * 0.75)
+        sn31 = self.sigma8_ratio(self, z, k)
+        self.set_n(n * 1.25)
+        sn32 = self.sigma8_ratio(self, z, k)
+        snder3 = (sn32-sn31)/(n * 0.5)
         
         #Numerical derivative with half stepsize 10%
         self.set_n(n * 0.9)
@@ -830,12 +906,15 @@ class HuSawicki(Cosmosground):
         sn22 = self.sigma8_ratio(self, z, k)
         snder2 = (sn22-sn21)/(n * 0.1)
 
+        return np.array([snder0, snder3, snder1, snder2])
+        '''
         if np.allclose(snder1, snder2, rtol = 1e-02, atol = 0):
             print('Partial derivative over n converges nicely')
             return np.array([snder1, snder2])
         else:
             print((snder1 - snder2)/snder2)
             raise RuntimeError('Partial derivative convergence over n failed, please check your model')
+        '''
         
     #Main callable
     def testderiv(self, fr0_exp, n, z, k, save = False):
@@ -874,24 +953,28 @@ class HuSawicki(Cosmosground):
            
             fig = plt.figure(figsize=(8, 12))
             plt.subplot(2, 1, 1)
-            plt.scatter(z, dfr[0], c = 'yellow', s = 0.1, label = r'f_R0 exponent derivatives, half-step 0.02')
-            plt.scatter(z, dfr[1], c = 'cyan', s = 0.1, label = r'f_R0 exponent derivatives, half-step 0.01')
+            plt.scatter(z, dfr[0], c = 'orange', s = 2, label = '$f_{R0}$ exponent derivatives, half-step $1$')
+            plt.scatter(z, dfr[1], c = 'pink', s = 1, label = '$f_{R0}$ exponent derivatives, half-step $0.5$')
+            plt.scatter(z, dfr[2], c = 'blue', s = 1, label = '$f_{R0}$ exponent derivatives, half-step $0.1$')
+            plt.scatter(z, dfr[3], c = 'green', s = 0.5, label = '$f_{R0}$ exponent derivatives, half-step $0.02$')
+            plt.scatter(z, dfr[4], c = 'red', s = 0.1, label = '$f_{R0}$ exponent derivatives, half-step $0.01$')
             plt.xlabel('z')
             plt.legend()
             
             plt.subplot(2, 1, 2)
-            plt.scatter(z, dn[0], c = 'orange', s = 0.1, label = r'n derivatives, step 5 percent')
-            plt.scatter(z, dn[1], c = 'pink', s = 0.1, label = r'n derivatives, step 5 percent')
+            plt.scatter(z, dn[0], c = 'orange', s = 2, label = '$n$ derivatives, half-step $100$ percent')
+            plt.scatter(z, dn[1], c = 'pink', s = 1, label = '$n$ derivatives, half-step $50$ percent')
+            plt.scatter(z, dn[2], c = 'blue', s = 0.5, label = '$n$ derivatives, half-step $10$ percent')
+            plt.scatter(z, dn[3], c = 'black', s = 0.1, label = '$n$ derivatives, half-step $5$ percent')
             plt.xlabel('z')
             plt.legend()
-            plt.show() 
-            '''
+            
             if save == True:
                 plt.savefig('f_R0_exp' + str(fr0_exp) + 'n=' + str(n) + 'derivtest.pdf', format='pdf', bbox_inches='tight', dpi=1200)
-            '''
+            plt.show() 
              
             #print(dfr[1], dn[1])
-            return np.array([dfr[0], dn[0]])
+            return np.array([dfr[-1], dn[-1]])
         else:
             raise RuntimeError('Error in the convergence test for partial derivatives')
     
