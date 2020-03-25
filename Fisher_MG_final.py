@@ -25,7 +25,7 @@ import AgrowthfR_re
 
 #Introduce errors on sigma8/sigma8_ΛCDM by tSZ galaxy counts forcasted constraint
 def serr():
-    f1 = '/Users/liuchangchun/Desktop/Research/Cosmology/Matplotlib/savedS8Fisher_SO-v3-goal-40_grid-default_CMB_all_v1.0_planck_lcdm.pkl' ########Download the f1 data and change to desired directory#######
+    f1 = '/Users/RayneLiu/Desktop/Research/Cosmology/Matplotlib/savedS8Fisher_SO-v3-goal-40_grid-default_CMB_all_v1.0_planck_lcdm.pkl' ########Download the f1 data and change to desired directory#######
     paramList,FisherTot = pkl.load(open(f1,'rb'),encoding='latin1') 
     z = np.arange(30) *0.1
     return z,(np.sqrt(np.diagonal(np.linalg.inv(FisherTot))[14:]))
@@ -35,7 +35,7 @@ def serr():
 ###I would like EVERY SUBCLASS OF THEM have the feature of just GIVE ME AN ARRAY OF s8/s8_ΛCDM (as one method inside of the subclass--the class should be able to do more other things for sure), and I would just CALL THE ARRAY DIRECTLY to do the Fisher analysis (also, I would like the array to have ALTERABLE REDSHIFT BINS). 
 
 #Colors used (aligning with the tSZ paper)
-colorbar = [(0.18039216, 0.65098039, 0.6627451), (0.65490196, 0, 0), (0.9372549 , 0.70588235, 0.23921569), (0.89803922, 0.84705882, 0.64313725), (0.43529412, 0.36470588, 0.27843137)]
+colorbar = [(0.18039216, 0.65098039, 0.6627451), (0.65490196, 0, 0), (0.9372549 , 0.70588235, 0.23921569), (0.89803922, 0.84705882, 0.64313725), (0.43529412, 0.36470588, 0.27843137), 'blue']
 
 #Plotting s8/s8_ΛCDM against the given errors
 def ratio_s8_mg_err(arrays, labels, save = False):
@@ -144,7 +144,7 @@ def coeellipse(Cov, pars, labelpars, blockvalues, linewidth = 1.6):
     theta = np.degrees(np.arctan2(eigvec[1,0], eigvec[0,0]))
     a,b = np.sqrt(eigval)
 
-    fig,ax = plt.subplots(1, 1, figsize = (10, 8))
+    fig,ax = plt.subplots(1, 1, figsize = (8, 8))
     ax.plot(pars[0], pars[1], marker='X', linewidth = linewidth * 3, zorder=10, linestyle='none', color='k', label='Canonical value')
     
     #One-sigma & two-sigma confidence level ellipse
@@ -190,7 +190,7 @@ def choleskyellipse(Cov, pars, labelpars, blockvalues, linewidth = 1.6):
     #print(trans)
 
     #Plotting the ellipse
-    fig,ax = plt.subplots(1, 1, figsize = (10, 8))
+    fig,ax = plt.subplots(1, 1, figsize = (8, 8))
     ax.plot(pars[0], pars[1], marker='X', linewidth = linewidth * 3, zorder=10, linestyle='none', color='k', label='Canonical value')
     for i in range(len(alphas)):
         trans = np.dot(L_fR, fcirc) * alphas[i] + meanblock
