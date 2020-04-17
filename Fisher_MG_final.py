@@ -18,6 +18,7 @@ from camb import model, initialpower
 from matplotlib import rc
 plt.rcParams['font.family'] = 'DejaVu Sans'
 rc('text', usetex=True)
+plt.rcParams.update({'font.size': 27})
 
 import sigma8_LCDM
 import AgrowthfR_re
@@ -69,7 +70,7 @@ def ratio_s8_mg_err(arrays, labels, save = False):
         plt.plot(Z, arrays, linewidth = 0.8, color = colorbar[0], label = labels)
     else:                       
         for i in range(len(arrays)):
-            plt.plot(Z, arrays[i], linewidth = 0.8, color = colorbar[i], label = labels[i])
+            plt.plot(Z, arrays[i], linewidth = 0.8, label = labels[i])#color = colorbar[i], 
         
     plt.xlabel('z')
 
@@ -144,7 +145,8 @@ def coeellipse(Cov, pars, labelpars, blockvalues, linewidth = 1.6):
     theta = np.degrees(np.arctan2(eigvec[1,0], eigvec[0,0]))
     a,b = np.sqrt(eigval)
 
-    fig,ax = plt.subplots(1, 1, figsize = (8, 8))
+    fig,ax = plt.subplots(1, 1, figsize = (11, 11))
+    #ax.axis('equal')
     ax.plot(pars[0], pars[1], marker='X', linewidth = linewidth * 3, zorder=10, linestyle='none', color='k', label='Canonical value')
     
     #One-sigma & two-sigma confidence level ellipse
@@ -190,7 +192,8 @@ def choleskyellipse(Cov, pars, labelpars, blockvalues, linewidth = 1.6):
     #print(trans)
 
     #Plotting the ellipse
-    fig,ax = plt.subplots(1, 1, figsize = (8, 8))
+    fig,ax = plt.subplots(1, 1, figsize = (11, 11))
+    #ax.axis('equal')
     ax.plot(pars[0], pars[1], marker='X', linewidth = linewidth * 3, zorder=10, linestyle='none', color='k', label='Canonical value')
     for i in range(len(alphas)):
         trans = np.dot(L_fR, fcirc) * alphas[i] + meanblock
@@ -200,7 +203,7 @@ def choleskyellipse(Cov, pars, labelpars, blockvalues, linewidth = 1.6):
         plt.axvline(x = pars[0] - np.sqrt(Cov[0][0]) * alphas[i], ls = '--', color = colorbar[i + 2], linewidth = linewidth, label = str(i + 1) + r'$\sigma$ $x - \alpha \sigma_x$')
         plt.axhline(y = pars[1] + np.sqrt(Cov[1][1]) * alphas[i], ls = '--', color = colorbar[i + 3], linewidth = linewidth, label = str(i + 1) + r'$\sigma$ $y + \alpha \sigma_y$ (' + labelpars[1] + ')')
         plt.axhline(y = pars[1] - np.sqrt(Cov[1][1]) * alphas[i], ls = '--', color = colorbar[i + 3], linewidth = linewidth, label = str(i + 1) + r'$\sigma$ $y - \alpha \sigma_y$')
-
+    #plt.xscale('log')
     plt.xlabel(labelpars[0])
     plt.ylabel(labelpars[1])
     plt.legend(loc='upper left')
@@ -242,18 +245,20 @@ def fisher2d(pars, derivs, printables, labels):
     Does the Fisher analysis for the 2-D array of imput derivatives. Inherited parameters.
     """
     derivs2d = derivs.T
-    print('The chosen derivative matrix is:')
-    print(derivs2d)
+    #print('The chosen derivative matrix is:')
+    #print(derivs2d)
     Fish2d = fishermain(derivs2d, serr()[1])
-    print('The resulting Fisher matrix is:')
-    print(Fish2d)
+    #print('The resulting Fisher matrix is:')
+    #print(Fish2d)
     Cov2d = np.linalg.inv(Fish2d)
     print('The covariance matrix is:')
     print(Cov2d)
+    cov2ds = [np.sqrt(Cov2d[0][0]), np.sqrt(Cov2d[1][1])]
     print('The marginalized error on ' + printables[0] + ' is:')
-    print(np.sqrt(Cov2d[0][0]))
+    print(cov2ds[0])
     print('The marginalized error on ' + printables[1] + ' is:')
-    print(np.sqrt(Cov2d[1][1]))
+    print(cov2ds[1])
+    '''
     c_11 = np.sqrt(np.divide(1, Fish2d[0][0]))
     print('The variance on ' + printables[0] + ' after blocking ' + printables[1] + ' is:')
     print(c_11)
@@ -263,6 +268,10 @@ def fisher2d(pars, derivs, printables, labels):
     print('The confidence ellipse, Dan Coe tutorial version (blue) vs. Cholesky version (grey):')
     coeellipse(Cov2d, pars, labels, np.array([c_11, c_22]))
     choleskyellipse(Cov2d, pars, labels, np.array([c_11, c_22]))
+    '''
+    #return the marginalized error for use
+    return cov2ds
+    
     
 def singularfisher(derivs, printables):
     """
@@ -280,6 +289,7 @@ def singularfisher(derivs, printables):
         print('The other derivative array:')
         print(derivs[0])
         fisher1d(derivs[0])
+        
         
 #Overall Fisher analysis of a model with a certain set of given parameters; has to take into account of the parameter dimensions.
 def fisheranalysis(model, pars, derivs):
@@ -301,7 +311,9 @@ def fisheranalysis(model, pars, derivs):
         if np.all(derivs[0] == 0) or np.all(derivs[1] == 0):
             singularfisher(derivs, model.get_printables())
         else:
-            fisher2d(pars, derivs, model.get_printables(), model.get_axeslabels())
+            #Check whether that gives me the same constraints as what I get before, and restore the original fiducial
+            #fr0 = 10.0**(pars[0])
+            return fisher2d(pars, derivs, model.get_printables(), model.get_axeslabels())
     elif isinstance(model, AgrowthfR_re.DGP):   
         fisher1d(derivs)
     else:
@@ -322,6 +334,7 @@ def modelanalysis(model, var, labels, pars = None, save = False):
     #class and do it there!
     if isinstance(model, AgrowthfR_re.LCDM):
         print('No free parameters to set in LCDM model')
+        svalues = AgrowthfR_re.Cosmosground().sigma8_ratio(model, var)
     else:
         model.setpars(pars)
     
@@ -333,7 +346,8 @@ def modelanalysis(model, var, labels, pars = None, save = False):
     
     print('The sigma8/sigma8_LCDM ratio plot of the model is:')
     ratio_s8_mg_err(svalues, labels, save)
-    print(svalues)
+    
+    #print(svalues)
     
     #Does the derivative convergence test
     if isinstance(model, AgrowthfR_re.LCDM):
@@ -344,7 +358,7 @@ def modelanalysis(model, var, labels, pars = None, save = False):
         elif isinstance(model, AgrowthfR_re.DGP):
             derivs = model.testderiv(pars, var, save)          
         #Does the proceeding Fisher analysis
-        fisheranalysis(model, pars, derivs)
+        return fisheranalysis(model, pars, derivs)
         
 #For nDGP currently (and perhaps other 1-parameter models) doing a variance-parameter plot for an array of parameters
 def plot1param(model, pararray, z, save = False):
