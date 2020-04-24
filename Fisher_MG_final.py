@@ -258,7 +258,7 @@ def fisher2d(pars, derivs, printables, labels):
     print(cov2ds[0])
     print('The marginalized error on ' + printables[1] + ' is:')
     print(cov2ds[1])
-    '''
+    
     c_11 = np.sqrt(np.divide(1, Fish2d[0][0]))
     print('The variance on ' + printables[0] + ' after blocking ' + printables[1] + ' is:')
     print(c_11)
@@ -268,7 +268,7 @@ def fisher2d(pars, derivs, printables, labels):
     print('The confidence ellipse, Dan Coe tutorial version (blue) vs. Cholesky version (grey):')
     coeellipse(Cov2d, pars, labels, np.array([c_11, c_22]))
     choleskyellipse(Cov2d, pars, labels, np.array([c_11, c_22]))
-    '''
+    
     #return the marginalized error for use
     return cov2ds
     
@@ -278,13 +278,13 @@ def singularfisher(derivs, printables):
     Does the Fisher analysis for the scenario where one of the parameters in the length-2 pars results in 
     all-zero partial derivatives. Inherited parameters, see the function fisheranalysis.
     """
-    if np.all(derivs[0] == 0):
+    if np.max(derivs[0]) < 1e-15:
         print('Partial derivatives over ' + printables[0] + ' is all-zero, now doing a singular Fisher analysis about ' + printables[1])
         print('The other derivative array:')
         print(derivs[1])
         fisher1d(derivs[1])
 
-    if np.all(derivs[1] == 0):
+    if np.max(derivs[1]) < 1e-15:
         print('Partial derivatives over ' + printables[1] + ' is all-zero, now doing a singular Fisher analysis about ' + printables[0])
         print('The other derivative array:')
         print(derivs[0])
@@ -308,7 +308,7 @@ def fisheranalysis(model, pars, derivs):
     printables: the label to put in print statements. Lists of strings like 'f_R0', 'n', etc.
     """
     if isinstance(model, AgrowthfR_re.HuSawicki):
-        if np.all(derivs[0] == 0) or np.all(derivs[1] == 0):
+        if np.max(derivs[0]) < 1e-15 or np.max(derivs[1]) < 1e-15:
             singularfisher(derivs, model.get_printables())
         else:
             #Check whether that gives me the same constraints as what I get before, and restore the original fiducial
