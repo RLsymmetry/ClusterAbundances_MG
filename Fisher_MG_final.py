@@ -18,7 +18,7 @@ from camb import model, initialpower
 from matplotlib import rc
 plt.rcParams['font.family'] = 'DejaVu Sans'
 rc('text', usetex=True)
-plt.rcParams.update({'font.size': 27})
+plt.rcParams.update({'font.size': 21})
 
 import sigma8_LCDM
 import AgrowthfR_re
@@ -58,19 +58,19 @@ def ratio_s8_mg_err(arrays, labels, save = False):
     
     save:   whether to save the plot as pdf [bool]
     """
-    fig = plt.figure(figsize=(8, 5.87))
+    fig = plt.figure(figsize=(12, 8.8))
 
     Z = np.linspace(0.05, 2.95, 30)
 
-    plt.errorbar(Z, [1.0 for z in Z], serr()[1], linewidth = 0.8, color = (0.11764706, 0.0627451 , 0.03529412), label = r'$\Lambda CDM$ model with forecasted constraints')
-    plt.axhline(y = 1, ls = '--', linewidth = 0.8, color = (0.54509804, 0.51764706, 0.50196078))
+    plt.errorbar(Z, [1.0 for z in Z], serr()[1], linewidth = 1.2, color = (0.11764706, 0.0627451 , 0.03529412), label = r'$\Lambda CDM$ model with forecasted constraints')
+    plt.axhline(y = 1, ls = '--', linewidth = 1.2, color = (0.54509804, 0.51764706, 0.50196078))
     
 
     if type(arrays[0]) in (int, float, np.int64, np.float64):
-        plt.plot(Z, arrays, linewidth = 0.8, color = colorbar[0], label = labels)
+        plt.plot(Z, arrays, linewidth = 1.2, color = colorbar[0], label = labels)
     else:                       
         for i in range(len(arrays)):
-            plt.plot(Z, arrays[i], linewidth = 0.8, label = labels[i])#color = colorbar[i], 
+            plt.plot(Z, arrays[i], linewidth = 1.2, color = colorbar[i], label = labels[i])
         
     plt.xlabel('z')
 
@@ -245,11 +245,11 @@ def fisher2d(pars, derivs, printables, labels):
     Does the Fisher analysis for the 2-D array of imput derivatives. Inherited parameters.
     """
     derivs2d = derivs.T
-    #print('The chosen derivative matrix is:')
-    #print(derivs2d)
+    print('The chosen derivative matrix is:')
+    print(derivs2d)
     Fish2d = fishermain(derivs2d, serr()[1])
-    #print('The resulting Fisher matrix is:')
-    #print(Fish2d)
+    print('The resulting Fisher matrix is:')
+    print(Fish2d)
     Cov2d = np.linalg.inv(Fish2d)
     print('The covariance matrix is:')
     print(Cov2d)
@@ -278,14 +278,16 @@ def singularfisher(derivs, printables):
     Does the Fisher analysis for the scenario where one of the parameters in the length-2 pars results in 
     all-zero partial derivatives. Inherited parameters, see the function fisheranalysis.
     """
-    if np.max(derivs[0]) < 1e-15:
+    if abs(np.max(derivs[0])) < 1e-15:
         print('Partial derivatives over ' + printables[0] + ' is all-zero, now doing a singular Fisher analysis about ' + printables[1])
+        print(derivs[0])
         print('The other derivative array:')
         print(derivs[1])
         fisher1d(derivs[1])
 
-    if np.max(derivs[1]) < 1e-15:
+    if abs(np.max(derivs[1])) < 1e-15:
         print('Partial derivatives over ' + printables[1] + ' is all-zero, now doing a singular Fisher analysis about ' + printables[0])
+        print(derivs[1])
         print('The other derivative array:')
         print(derivs[0])
         fisher1d(derivs[0])
@@ -308,7 +310,7 @@ def fisheranalysis(model, pars, derivs):
     printables: the label to put in print statements. Lists of strings like 'f_R0', 'n', etc.
     """
     if isinstance(model, AgrowthfR_re.HuSawicki):
-        if np.max(derivs[0]) < 1e-15 or np.max(derivs[1]) < 1e-15:
+        if abs(np.max(derivs[0])) < 1e-15 or abs(np.max(derivs[1])) < 1e-15:
             singularfisher(derivs, model.get_printables())
         else:
             #Check whether that gives me the same constraints as what I get before, and restore the original fiducial
@@ -371,11 +373,11 @@ def plot1param(model, pararray, z, save = False):
         derivs = model.testderiv(pararray[i], z, show = False)
         variances[i] = fisher1d(derivs, ret = True)
     
-    fig = plt.figure(figsize=(8, 5.87))
-    plt.plot(pararray, np.divide(pararray, variances), linewidth = 3, label = r'(Fiducial Value)/(Variance) vs. Fiducial Value, $z$ from ' + str(z[0]) + ' to ' + str(z[-1]) + ' with ' + str(len(z)) + ' datapoints')
-    plt.xlabel('Fiducial values chosen of the parameter')
+    fig = plt.figure(figsize=(12, 8.8))
+    plt.plot(pararray, np.divide(pararray, variances), linewidth = 1.7)
+    plt.xlabel('Parameter fiducial values chosen')
     plt.ylabel('Fiducial values over Variances')
-    plt.legend()
+    plt.title(r'(Fiducial Value)/(Variance) vs. Fiducial Value, $z$ from ' + str(z[0]) + ' to ' + str(z[-1]) + ' with ' + str(len(z)) + ' datapoints')
     if save == True:
         plt.savefig('fiducialovervariance.pdf', format='pdf', bbox_inches='tight', dpi=1200)
     plt.show()
