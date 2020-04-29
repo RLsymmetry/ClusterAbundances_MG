@@ -515,7 +515,10 @@ class Cosmosground(object):
 
         #The ratio of s8 and the normalized growth function
         s8lcdm0 = self._sigma8_dyn(np.array([0]))[1][0]
-        #print(self.sigma8_model_ratio(model, Z, k))
+        #s8lcdm = self._sigma8_dyn(z)[1]
+        #if isinstance(model, LCDM):
+        #    s8modelratio = s8lcdm/s8lcdm0
+        #else:
         s8modelratio = self.sigma8_model_ratio(model, Z, k)[1]/s8lcdm0
         
         D_1 = self._D_from_g(1, gamma)
@@ -824,7 +827,7 @@ class HuSawicki(Cosmosground):
 
             #This part employs a modified higher-order derivative at the boundary. 
             #$f'(x) = \frac{18f(x + h) - 9f(x + 2h) + 2f(x + 3h) - 11f(x)}{6h}$
-            steps = np.array([1e-8, 8e-9])
+            steps = np.array([9e-9, 1e-8])
             sfder = []
             for i in range(len(steps)):
                 self.set_fr0(0)
@@ -946,8 +949,6 @@ class HuSawicki(Cosmosground):
             print('Warning: when f_R0 = 0, partial derivative over n is essentially zero, the derivative plot may be showing calculation noise')
             return np.array(snder)
         else:
-            print(snder[0])
-            print(snder[1])
             print((snder[0] - snder[1])/snder[1])
             raise RuntimeError('Partial derivative convergence over n failed, please check your model')
         
@@ -994,8 +995,8 @@ class HuSawicki(Cosmosground):
             #plt.scatter(z, dfr[1], c = 'pink', s = 1, label = '$f_{R0}$ exponent derivatives, half-step $0.5$')
             #plt.scatter(z, dfr[2], c = 'blue', s = 1, label = '$f_{R0}$ exponent derivatives, half-step $0.1$')
             if fr0_exp == 0:
-                plt.scatter(z, dfr[0], c = 'green', s = 0.5, label = '$f_{R0}$ derivatives, half-step $10^{-8}$')
-                plt.scatter(z, dfr[1], c = 'red', s = 0.1, label = '$f_{R0}$ derivatives, half-step $9 \times 10^{-9}$')
+                plt.scatter(z, dfr[0], c = 'green', s = 0.5, label = '$f_{R0}$ derivatives, half-step 9e-9')
+                plt.scatter(z, dfr[1], c = 'red', s = 0.1, label = '$f_{R0}$ derivatives, half-step 1e-8')
             else :
                 plt.scatter(z, dfr[0], c = 'green', s = 0.5, label = '$f_{R0}$ exponent derivatives, half-step $0.1$')
                 plt.scatter(z, dfr[1], c = 'red', s = 0.1, label = '$f_{R0}$ exponent derivatives, half-step $0.05$')
@@ -1139,30 +1140,28 @@ class DGP(Cosmosground):
     #r_c partial derivatives
     def _rctestderiv(self, rc, z, save):
         """
-        Tests the convergence of the numerical derivative partial rc in the DGP model. Inherited paramters.
+        Tests the convergence of the numerical derivative partial rc (i.e. n, since n = H0 * rc here) in the DGP model. Inherited paramters.
         """
-        print('Testing partial derivative over rc')
-        
-        #Numerical derivative with half stepsize 10^(-4)
-        self.set_rc(rc - 10 ** (-4))
-        sr11 = self.sigma8_ratio(self, z)
-        self.set_rc(rc + 10 ** (-4))
-        sr12 = self.sigma8_ratio(self, z)
-        srder1 = (sr12-sr11)/(2 * 10 ** (-4))
+        print('Testing partial derivative over rc (or n)')
+        steps = np.array([0.1, 0.05])
+        srder = []
+        for i in range(len(steps)): 
+            self.set_rc(rc - 2*steps[i])
+            sr_2 = self.sigma8_ratio(self, z)
+            self.set_rc(rc - steps[i])
+            sr_1 = self.sigma8_ratio(self, z)
+            self.set_rc(rc + steps[i])
+            sr1 = self.sigma8_ratio(self, z)
+            self.set_rc(rc + 2*steps[i])
+            sr2 = self.sigma8_ratio(self, z)
+            srder.append((sr_2 - 8*sr_1 + 8*sr1 - sr2)/(12*steps[i]))
 
-        #Numerical derivative with half stepsize 10^(-6)
-        self.set_rc(rc - 10 ** (-6))
-        sr21 = self.sigma8_ratio(self, z)
-        self.set_rc(rc + 10 ** (-6))
-        sr22 = self.sigma8_ratio(self, z)
-        srder2 = (sr22-sr21)/(2 * 10 ** (-6))
-
-        if np.allclose(srder1, srder2, rtol = 5e-03, atol = 0):
-            print('Partial derivative over rc converges nicely')
-            return np.array([srder1, srder2])
+        if np.allclose(srder[0], srder[1], rtol = 5e-03, atol = 0):
+            print('Partial derivative over rc (or n) converges nicely')
+            return np.array(srder)
         else:
-            #  print(srder2 - srder1)
-            raise RuntimeError('Partial derivative convergence over rc failed, please check your model')
+            print(srder[1] - srder[0])
+            raise RuntimeError('Partial derivative convergence over (or n) failed, please check your model')
         
         
     #Main callable
