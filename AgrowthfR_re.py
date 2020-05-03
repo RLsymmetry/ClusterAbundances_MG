@@ -171,24 +171,25 @@ class Cosmosground(object):
         """
         Initializes the basic constant cosmological quantities.
         """
+        #(Change to desired background cosmology if needed. )
         self._amin = 0.002  
         self._amax = 1  
         self._c = 2997
-        self._H0 = 67.0
+        self._H0 = 67.0 #H0 = 67.0, i.e. h = 0.67. However, this module itself works on normalized H0 = 1, and 67.0 is mainly for CAMB.)
         self._omch2 = 0.1194
         self._ombh2 = 0.022
         self._Om = (self._omch2 + self._ombh2)/((self._H0/100) ** 2) #+ 0.06/(94 * (0.67 ** 2)) 
-        self._ns = 0.96
-        self._As = 2.2e-9
-        #(Rayne and Nick; from Nick's tSZ galaxy count paper, ombh2 = 0.022, omch2 = 0.1194, 
-        #H0 = 67.0, i.e. h = 0.67. However, this module itself works on normalized H0 = 1.)
-        #(Change to desired background cosmology if needed. 
         #Om denotes the normalized density factor of all non-relativistic matter.)
         #(For Wmap9: Om=0.281)     
         #(For Planck: Om=0.3089)
         #####Mind when you set Om, you have to set the corresponding density factor in camb as well!)
+        #Because of this, set_Om is disabled; you can only set_omch2 or set_ombh2.
+        self._ns = 0.96
+        self._As = 2.2e-9
+        #From Nick's tSZ galaxy count paper, ombh2 = 0.022, omch2 = 0.1194
+        
         #self._Onu = 
-        #(Give up on this nu--this doesn't change the final results by any amount and it caused a bag of troubles in the calculation!)
+        #(Gave up on this nu--this doesn't change the final results by any amount and it caused a bag of troubles in the calculation!)
         #self._P0 = self._p(np.array([0.0]))[2][0]
         #Matter power spectrum when z = 0
 
@@ -1049,6 +1050,7 @@ class DGP(Cosmosground):
         """
         assert type(value) in (int, float, np.int64, np.float64), 'value must be a number'
         self._rc = value
+        self._n = value*self.H(1)
         
     #A general parameter setting function that can be used by modules like Fisher_MG_final, etc.
     def setpars(self, pars):
@@ -1069,6 +1071,7 @@ class DGP(Cosmosground):
         #DGP parameters
         #self._branch = 1
         self._rc = 3
+        self._n = self._rc*self.H(1)
     
     #Defining mass terms and effective g factor in DGP
     def _geffDGP(self, a0):
@@ -1082,7 +1085,7 @@ class DGP(Cosmosground):
         geff[a_] = 2 (beta[a_])^2;
         (Note that when you include sDGP there's the sign problem so you have to do the sqrt
         """
-        betaDGP = 1 + 2 * self._rc * self.H(a0) * (1 + (self._derivHa(a0) * self._adot(a0))/(3 * (self.H(a0)) ** 2))
+        betaDGP = 1 + 2 * self._n * self.H(a0) * (1 + (self._derivHa(a0) * self._adot(a0))/(3 * (self.H(a0)) ** 2))
         geff = 1/(3 * betaDGP)
         return geff
     
@@ -1138,13 +1141,15 @@ class DGP(Cosmosground):
     
     #Convergence tests and productions of numerical derivatives
     #r_c partial derivatives
-    def _rctestderiv(self, rc, z, save):
+    def _rctestderiv(self, n, z, save):
         """
-        Tests the convergence of the numerical derivative partial rc (i.e. n, since n = H0 * rc here) in the DGP model. Inherited paramters.
+        Tests the convergence of the numerical derivative partial n (n = H0 * rc here) in the DGP model, but is called by rctestderiv in order to distinguish between the _ntestderiv in f(R) (Also trying to avoid confusion in other modules that already called this function). Inherited paramters.
         """
-        print('Testing partial derivative over rc (or n)')
+        print('Testing partial derivative over n')
         steps = np.array([0.1, 0.05])
         srder = []
+        H0 = self.H(1)
+        rc = n/H0
         for i in range(len(steps)): 
             self.set_rc(rc - 2*steps[i])
             sr_2 = self.sigma8_ratio(self, z)
@@ -1154,18 +1159,19 @@ class DGP(Cosmosground):
             sr1 = self.sigma8_ratio(self, z)
             self.set_rc(rc + 2*steps[i])
             sr2 = self.sigma8_ratio(self, z)
-            srder.append((sr_2 - 8*sr_1 + 8*sr1 - sr2)/(12*steps[i]))
+            #steps in rc * H0 is steps in n
+            srder.append((sr_2 - 8*sr_1 + 8*sr1 - sr2)/(12*steps[i]*H0))
 
         if np.allclose(srder[0], srder[1], rtol = 5e-03, atol = 0):
-            print('Partial derivative over rc (or n) converges nicely')
+            print('Partial derivative over n converges nicely')
             return np.array(srder)
         else:
             print(srder[1] - srder[0])
-            raise RuntimeError('Partial derivative convergence over (or n) failed, please check your model')
+            raise RuntimeError('Partial derivative convergence over n failed, please check your model')
         
         
     #Main callable
-    def testderiv(self, rc, z, show = True, save = False):
+    def testderiv(self, n, z, show = True, save = False):
         """
         Tests the convergence of the numerical derivative partial rc in the DGP modified gravity model.
         Inherits the parameters in the model.
@@ -1184,18 +1190,18 @@ class DGP(Cosmosground):
         """
         
         #numerical derivatives
-        drc = self._rctestderiv(rc, z, save)
+        dn = self._rctestderiv(n, z, save)
         
-        if type(drc) in (np.ndarray, list, tuple):
+        if type(dn) in (np.ndarray, list, tuple):
             if show == True:               
                 fig = plt.figure(figsize=(8, 5.6))
-                plt.scatter(z, drc[0], c = 'yellow', s = 0.1, label = '$r_c$ derivatives, step $10^{-4}$')
-                plt.scatter(z, drc[1], c = 'cyan', s = 0.1, label = '$r_c$ derivatives, step $10^{-6}$')
+                plt.scatter(z, dn[0], c = 'yellow', s = 0.1, label = '$r_c$ derivatives, step $10^{-4}$')
+                plt.scatter(z, dn[1], c = 'cyan', s = 0.1, label = '$r_c$ derivatives, step $10^{-6}$')
                 plt.legend()
                 plt.xlabel('z')
 
                 if save == True:
-                    plt.savefig('DGPrc=' + str(rc) + 'derivtest.pdf', format='pdf', bbox_inches='tight', dpi=1200)
+                    plt.savefig('DGPn=' + str(rc*Cm.H(1)) + 'derivtest.pdf', format='pdf', bbox_inches='tight', dpi=1200)
                 plt.show() 
 
-            return drc[1]
+            return dn[1]
