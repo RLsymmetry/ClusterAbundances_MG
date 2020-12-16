@@ -6,6 +6,7 @@ It is possible and encouraged to extend this module for higher order solutions. 
 Initially there are three subclasses, representing the ΛCDM model, the Hu-Sawicki fR model, and the nDGP model respectively. Adding more future theoretical model subclasses is welcome and anticipated.
 
 Rayne Liu 06/12/2019
+Recent updates 12/01/2020
 """
 
 #Import necessary modules
@@ -159,14 +160,6 @@ class Cosmosground(object):
         self._As = value
    
     
-    '''
-    def get_P0(self):
-        """
-        Returns: the matter power spectrum at redshift z = 0. Using the data directly from CAMB, taking 500 kh values.
-        """
-        return self._P0
-    '''
-    
     def __init__(self):
         """
         Initializes the basic constant cosmological quantities.
@@ -309,9 +302,7 @@ class Cosmosground(object):
         Sigma_8 as a function of redshift z calculated from the built-in
         camb-calculated P(k). 
 
-        It looks like Simpson's rule does not really require linear spacing!!! 
-        Simpson is good enough at least better than trapz!!
-        I was soooo dumb................
+        It looks like Simpson's rule does not really require linear spacing, and it's good enough, at least better than trapz.
 
         Parameter: 
         z          [a numpy array of redshifts, for each entry 0 <= z[i] <= 1100]
@@ -757,7 +748,7 @@ class HuSawicki(Cosmosground):
     #Defines and solves the differential equation
 
     #Below we use the odeint in scipy.
-    #Primary conclusion is that solve_ivp is much slower than odeint for a problem like what I have right now. Maybe it's because my problem is still a small problem......instead of a relatively large ode problem. According to this post https://github.com/scipy/scipy/issues/8257, direct RK45 is also gonna be slower......I'll keep odeint for now.
+    #Primary conclusion from comparison with solve_ivp is that solve_ivp is much slower than odeint for a problem like what I have right now. According to this post https://github.com/scipy/scipy/issues/8257, direct RK45 is also slower, so even though new routines are updated to replace odeint, I'll keep odeint for now.
     def _growthfR(self, vecfr, a, k):
         """
         Returns: the 2nd order ode of the growth factor in the fR model in terms of a 1st order vector ode.
